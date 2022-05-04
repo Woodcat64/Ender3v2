@@ -1,0 +1,203 @@
+####################################
+# Moonraker integration #
+####################################
+
+# put http://ip:7125/server/files/gcodes/{{ states.sensor.klipper_preview_path.attributes["relative_path"] }} in UI General Camera integration
+#camera:
+#  - platform: generic
+#    name: "Ender_3_v2_Thumbnail"
+#    still_image_url: http://ip:7125/server/files/gcodes/{{ states.sensor.klipper_preview_path.attributes["relative_path"] }}
+#    verify_ssl: false
+
+sensor:
+  - platform: rest
+    scan_interval: 5
+    resource_template: "http://ip:7125/server/files/metadata?filename={{ states(('sensor.ender3v2_current_print')) }}"
+    name: Ender_3_v2_file_metadata
+    json_attributes_path: "$.result"
+    json_attributes:
+      - layer_height
+      - object_height
+      - thumbnails
+    value_template: "OK"
+
+  - platform: rest
+    name: Ender_3_v2_sensor
+    resource: "http://ip:7125/printer/objects/query?heater_bed&extruder&print_stats&toolhead&display_status&virtual_sdcard&gcode_move&filament_switch_sensor Filament"
+    json_attributes_path: "$.result.status"
+    json_attributes:
+      - heater_bed
+      - extruder
+      - print_stats
+      - toolhead
+      - display_status
+      - virtual_sdcard
+      - gcode_move
+      - "filament_switch_sensor Filament"
+    value_template: "OK"
+    force_update: true
+    scan_interval: 1
+
+  - platform: rest
+    name: Ender_3_v2_info
+    scan_interval: 1
+    resource_template: "http://ip:7125/printer/info"
+    json_attributes_path: "$.result"
+    json_attributes:
+      - state_message
+      - state
+    value_template: "OK"
+
+  - platform: rest
+    scan_interval: 15
+    name: klipper_preview_path
+    resource_template: "http://ip:7125/server/files/metadata?filename={{ states(('sensor.ender3v2_current_print')) }}"
+    json_attributes_path: "$.result.thumbnails.[2]"
+    json_attributes:
+      - relative_path
+      - width
+      - height
+      - size
+    value_template: "OK"
+
+  - platform: template
+    sensors:
+      ender3v2_hotend_target:
+        friendly_name: 'Hotend Target'
+        device_class: temperature
+        unit_of_measurement: '°C'
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['extruder']['target'] | float | round(1) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_hotend_actual:
+        friendly_name: "Hotend Actual"
+        device_class: temperature
+        unit_of_measurement: '°C'
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['extruder']['temperature'] | float | round(1) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_bed_target:
+        friendly_name: "Bed Target"
+        device_class: temperature
+        unit_of_measurement: '°C'
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['heater_bed']['target'] | float | round(1) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_bed_actual:
+        friendly_name: "Bed Actual"
+        device_class: temperature
+        unit_of_measurement: '°C'
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['heater_bed']['temperature'] | float | round(1) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_state:
+        friendly_name: "Printer State"
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['print_stats']['state'] if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+        icon_template: >
+          {% set val =  states.sensor.ender_3_v2_sensor.attributes["print_stats"]["state"]  %}
+          {% if val == 'standby' %}
+            mdi:sleep
+          {% elif val == 'error' %}
+            mdi:alert-circle
+          {% elif val == 'printing' %}
+            mdi:printer-3d-nozzle
+          {% elif val == 'paused' %}
+            mdi:pause-circle
+          {% elif val == 'complete' %}
+            mdi:printer-3d
+          {% else %}
+            mdi:help-circle
+          {% endif %}
+
+      ender3v2_current_print:
+        friendly_name: "Current Print"
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['print_stats']['filename'] if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_current_progress:
+        friendly_name: "Progress"
+        unit_of_measurement: '%'
+        icon_template: mdi:cube-send
+        value_template: >-
+          {{ (states.sensor.ender_3_v2_sensor.attributes['display_status']['progress'] * 100) | round(1) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_print_time:
+        friendly_name: "Time Elapsed"
+        icon_template: mdi:clock-start
+        value_template: >-
+          {{ states.sensor.ender_3_v2_sensor.attributes['print_stats']['print_duration'] | timestamp_custom("%H:%M:%S", 0) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_time_remaining:
+        friendly_name: "Time Remaining"
+        icon_template: mdi:clock-end
+        value_template: >-
+          {{ (((states.sensor.ender_3_v2_sensor.attributes['print_stats']['print_duration'] / states.sensor.ender_3_v2_sensor.attributes['display_status']['progress'] - states.sensor.ender_3_v2_sensor.attributes['print_stats']['print_duration']) if states.sensor.ender_3_v2_sensor.attributes['display_status']['progress'] > 0 else 0)) | timestamp_custom("%H:%M:%S", 0) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+#      ender3v2_eta:
+#        friendly_name: "ETA"
+#        icon_template: mdi:clock-outline
+#        value_template: >-
+#          {{ (as_timestamp(now()) + 2 * 60 * 60 + ((states.sensor.ender_3_v2_sensor.attributes['print_stats']['print_duration'] / states.sensor.ender_3_v2_sensor.attributes['display_status']['progress'] - states.sensor.ender_3_v2_sensor.attributes['print_stats']['print_duration']) if states.sensor.ender_3_v2_sensor.attributes['display_status']['progress'] > 0 else 0)) | timestamp_custom("%H:%M:%S", 0) if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_hotend_temp:
+        icon_template: mdi:thermometer
+        value_template: >-
+          {{ [(states.sensor.ender_3_v2_sensor.attributes['extruder']['temperature'] | float | round(1) | string), " / ", (states.sensor.ender_3_v2_sensor.attributes['extruder']['target'] | float | round(1) | string)] | join if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      ender3v2_bed_temp:
+        icon_template: mdi:thermometer
+        value_template: >-
+          {{ [(states.sensor.ender_3_v2_sensor.attributes['heater_bed']['temperature'] | float | round(1) | string), " / ", (states.sensor.ender_3_v2_sensor.attributes['heater_bed']['target'] | float | round(1) | string)] | join if states('sensor.ender_3_v2_sensor') != 'unknown' else None }}
+
+      3d_printer_layer_height:
+        friendly_name: "Layer Height"
+        value_template: '{{ states.sensor.ender_3_v2_file_metadata.attributes["layer_height"] | float }}'
+        unit_of_measurement: "mm"
+        icon_template: mdi:arrow-collapse-down
+
+      3d_printer_object_height:
+        friendly_name: "Object Height"
+        value_template: '{{ states.sensor.ender_3_v2_file_metadata.attributes["object_height"] | float }}'
+        unit_of_measurement: "mm"
+        icon_template: mdi:arrow-expand-vertical
+
+      3d_printer_current_height:
+        friendly_name: "Current Height"
+        value_template: '{{ states.sensor.ender_3_v2_sensor.attributes["gcode_move"]["gcode_position"][2]  | float | round(2) }}'
+        unit_of_measurement: "mm"
+        icon_template: mdi:arrow-collapse-down
+
+      3d_printer_current_layer:
+        friendly_name: "Current Layer"
+        value_template: '{{ (states("sensor.3d_printer_current_height")|float / states("sensor.3d_printer_layer_height")|float)|round(0) }}'
+
+      3d_printer_total_layers:
+        friendly_name: "Total Layers"
+        value_template: '{{ (states("sensor.3d_printer_object_height")|float / states("sensor.3d_printer_layer_height")|float)|round(0) }}'
+
+#      3d_printer_object_thumbnails:
+#        friendly_name: "Object Thumbnails"
+#        value_template: '{{ states.sensor.ender_3_v2_file_metadata.attributes["thumbnails"][2]["relative_path"] }}'
+#        icon_template: mdi:image
+
+      3d_printer_state_message:
+        friendly_name: "State Message"
+        value_template: '{{ states.sensor.ender_3_v2_info.attributes["state_message"] }}'
+
+rest_command:
+  3d_printer_emergency_stop:
+    url: "http://ip:7125/printer/emergency_stop"
+    method: post
+  3d_printer_firmware_restart:
+    url: "http://ip:7125/printer/firmware_restart"
+    method: post
+  3d_printer_cancel:
+    url: "http://ip:7125/printer/print/cancel"
+    method: post
+  3d_printer_pause:
+    url: "http://ip:7125/printer/print/pause"
+    method: post
+  3d_printer_resume:
+    url: "http://ip:7125/printer/print/resume"
+    method: post

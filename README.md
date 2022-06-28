@@ -1,4 +1,4 @@
-# Ender3v2 Klipper Config Files
+# Ender3v2 Klipper Config Files and Home Assistant Moonraker integration
 
 Creality v4.2.2 board using display port UART to comunicate with Raspberry Pi3+
 

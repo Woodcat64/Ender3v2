@@ -19,4 +19,4 @@ column 4: entities card
 
 Also vertical-stack cards are used to keep columns together.
 
-Example Dashboard_Printer_tab.yaml file is above
+Example [Dashboard_Printer_tab.yaml](https://github.com/Woodcat64/Ender3v2/blob/main/Dashboard_Printer_tab.yaml) file is above

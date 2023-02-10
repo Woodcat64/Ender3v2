@@ -1,0 +1,200 @@
+  - title: Ender3v2
+    path: ender3v2
+    icon: mdi:printer-3d
+    badges: []
+    cards:
+      - type: vertical-stack
+        cards:
+          - type: custom:love-lock-card
+            title: Ender3v2
+            popup: confirm
+            cards:
+              - type: entities
+                entities:
+                  - entity: switch.pm_plug1
+                    name: Printer
+                    icon: mdi:printer-3d
+                  - entity: switch.5
+                    name: Klipper Pi
+                    icon: mdi:sail-boat
+          - type: entities
+            entities:
+              - entity: automation.ender3v2_power_off
+                name: Auto Power Off
+              - entity: switch.2
+                icon: hass:lightbulb-on
+                name: Ender Light
+              - entity: switch.3
+                name: Cam
+                icon: mdi:cctv
+      - type: vertical-stack
+        cards:
+          - show_name: true
+            show_icon: true
+            show_state: true
+            type: glance
+            entities:
+              - entity: sensor.ender3v2_state
+                name: Printer State
+              - entity: sensor.ender3v2_hotend_temp
+                name: Hotend
+              - entity: sensor.ender3v2_bed_temp
+                name: Bed
+          - type: entity
+            entity: sensor.ender3v2_time_remaining
+          - type: custom:bar-card
+            max: '100'
+            min: '0'
+            positions:
+              icon: inside
+              indicator: 'off'
+            entities:
+              - entity: sensor.ender3v2_current_progress
+            entity_row: true
+            icon: mdi:cube-send
+          - type: entities
+            entities:
+              - entity: sensor.ender3v2_state_message
+                icon: mdi:card-text
+                name: ' '
+          - type: custom:love-lock-card
+            popup: confirm
+            cards:
+              - type: horizontal-stack
+                cards:
+                  - type: button
+                    tap_action:
+                      action: call-service
+                      service: rest_command.3d_printer_emergency_stop
+                      service_data: {}
+                      target: {}
+                    name: STOP
+                    icon: mdi:alert-octagon-outline
+                    show_state: false
+                    show_name: true
+                    show_icon: true
+                    hold_action:
+                      action: none
+                    card_mod:
+                      style: |
+                        :host {
+                          --paper-item-icon-color: red;
+                        }
+                  - type: button
+                    tap_action:
+                      action: call-service
+                      service: rest_command.3d_printer_firmware_restart
+                      service_data: {}
+                      target: {}
+                    name: FW Reset
+                    icon: mdi:restart
+                    show_icon: true
+                    show_name: true
+                    hold_action:
+                      action: none
+                    card_mod:
+                      style: |
+                        :host {
+                          --paper-item-icon-color: orange;
+                        }
+                  - type: button
+                    tap_action:
+                      action: call-service
+                      service: rest_command.3d_printer_pause
+                      service_data: {}
+                      target: {}
+                    icon: mdi:motion-pause-outline
+                    name: Pause
+                    show_icon: true
+                    show_name: true
+                    hold_action:
+                      action: none
+                    card_mod:
+                      style: |
+                        :host {
+                          --paper-item-icon-color: lightblue;
+                        }
+                  - type: button
+                    tap_action:
+                      action: call-service
+                      service: rest_command.3d_printer_resume
+                      service_data: {}
+                      target: {}
+                    icon: mdi:motion-play-outline
+                    name: Resume
+                    show_icon: true
+                    show_name: true
+                    hold_action:
+                      action: none
+                    card_mod:
+                      style: |
+                        :host {
+                          --paper-item-icon-color: green;
+                        }
+                  - type: button
+                    tap_action:
+                      action: call-service
+                      service: rest_command.3d_printer_cancel
+                      service_data: {}
+                      target: {}
+                    icon: mdi:cancel
+                    name: Cancel
+                    show_name: true
+                    show_icon: true
+                    hold_action:
+                      action: none
+                    card_mod:
+                      style: |
+                        :host {
+                          --paper-item-icon-color: red;
+                        }
+      - type: picture-entity
+        entity: camera.ender3v2
+        camera_view: live
+      - type: custom:vertical-stack-in-card
+        cards:
+          - show_state: false
+            show_name: false
+            camera_view: live
+            type: picture-entity
+            entity: camera.3d_printer_thumbnail
+          - show_name: false
+            show_icon: false
+            show_state: true
+            type: glance
+            entities:
+              - entity: sensor.ender3v2_current_print
+      - type: entities
+        entities:
+          - type: divider
+          - entity: sensor.ender3v2_print_time
+          - entity: sensor.ender3v2_time_remaining
+          - type: divider
+          - entity: sensor.3d_printer_layer_height
+          - entity: sensor.ender3v2_layer_progress
+          - entity: sensor.ender3v2_height_progress
+        title: E3v2
+        state_color: true
+      - type: custom:bar-card
+        entities:
+          - entity: sensor.pm_plug1_energy_power
+            min: 0
+            max: 315
+        severity:
+          - from: '0'
+            to: '10'
+          - from: '11'
+            to: '20'
+            color: green
+          - from: '21'
+            to: '200'
+            color: orange
+          - from: '201'
+            to: '315'
+            color: red
+        name: Power
+        positions:
+          icon: inside
+          indicator: 'off'
+        entity_row: true
+        icon: mdi:flash
